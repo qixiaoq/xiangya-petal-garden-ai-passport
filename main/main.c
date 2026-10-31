@@ -43,6 +43,7 @@ static bool s_clock_editing, s_clock_valid, s_sound_ready, s_sound_enabled = tru
 static bool s_preview_mode;
 static uint8_t s_preview_stage;
 static uint8_t s_stage_floor;
+static uint32_t s_cycles;
 static uint8_t s_cursor, s_first = 255, s_neighbor = 255;
 
 typedef struct { uint32_t version; garden_game_t game; } saved_game_t;
@@ -203,13 +204,16 @@ static void refresh_ui(void) {
     char line[32];uint8_t stage=garden_companion_stage_with_floor(s_game.total_cleared,s_stage_floor);
     uint32_t next=garden_companion_next_with_floor(s_game.total_cleared,s_stage_floor);
     uint8_t display_stage=s_preview_mode?s_preview_stage:stage;
-    lv_snprintf(line,sizeof(line),s_preview_mode?"PREVIEW %u/7":"LEVEL %u/7",(unsigned)(display_stage+1));lv_label_set_text(s_level,line);
-    if(s_preview_mode)lv_snprintf(line,sizeof(line),"GOAL %lu FLOWERS",(unsigned long)garden_companion_threshold(display_stage));
-    else if(next)lv_snprintf(line,sizeof(line),"%lu/%lu FLOWERS",(unsigned long)s_game.total_cleared,(unsigned long)next);
-    else lv_snprintf(line,sizeof(line),"%lu FLOWERS",(unsigned long)s_game.total_cleared);
-    lv_label_set_text(s_target,line);
     uint32_t start=garden_companion_threshold(stage);
     if(s_game.total_cleared<start)start=0;
+    if(s_preview_mode)lv_snprintf(line,sizeof(line),"PREVIEW %u/7",(unsigned)(display_stage+1));
+    else if(s_cycles)lv_snprintf(line,sizeof(line),"LEVEL %u/7 G%lu",(unsigned)(display_stage+1),(unsigned long)(s_cycles+1));
+    else lv_snprintf(line,sizeof(line),"LEVEL %u/7",(unsigned)(display_stage+1));
+    lv_label_set_text(s_level,line);
+    if(s_preview_mode)lv_snprintf(line,sizeof(line),"GOAL %lu FLOWERS",(unsigned long)garden_companion_threshold(display_stage));
+    else if(next)lv_snprintf(line,sizeof(line),"%lu/%lu FLOWERS",(unsigned long)(s_game.total_cleared-start),(unsigned long)(next-start));
+    else lv_snprintf(line,sizeof(line),"%lu FLOWERS",(unsigned long)s_game.total_cleared);
+    lv_label_set_text(s_target,line);
     uint32_t width=s_preview_mode?garden_companion_threshold(display_stage)*120/garden_companion_threshold(6):
         next?(s_game.total_cleared-start)*120/(next-start):120;
     lv_obj_set_width(s_progress,width?width:2);
@@ -234,11 +238,14 @@ static bool restore_game(void) {
     esp_err_t err=nvs_get_blob(handle,"state",&saved,&size);
     uint8_t saved_floor=0;
     esp_err_t floor_err=nvs_get_u8(handle,"stage_floor",&saved_floor);
+    uint32_t saved_cycles=0;
+    (void)nvs_get_u32(handle,"cycles",&saved_cycles);
     nvs_close(handle);
     if(err!=ESP_OK||size!=sizeof(saved)||saved.version!=SAVE_VERSION||!saved.game.rng)return false;
     for(int i=0;i<36;++i)if(saved.game.cells[i]<1||saved.game.cells[i]>GARDEN_COLORS)return false;
     s_game=saved.game;if(garden_has_match(&s_game))return false;
     s_stage_floor=floor_err==ESP_OK&&saved_floor<=6?saved_floor:garden_companion_legacy_stage(s_game.total_cleared);
+    s_cycles=saved_cycles;
     garden_rebuild_moves(&s_game);return s_game.move_count!=0;
 }
 static void save_game(void) {
@@ -246,6 +253,7 @@ static void save_game(void) {
     saved_game_t saved={.version=SAVE_VERSION,.game=s_game};
     esp_err_t err=nvs_set_blob(handle,"state",&saved,sizeof(saved));
     if(err==ESP_OK)err=nvs_set_u8(handle,"stage_floor",s_stage_floor);
+    if(err==ESP_OK)err=nvs_set_u32(handle,"cycles",s_cycles);
     if(err==ESP_OK)err=nvs_commit(handle);
     if(err!=ESP_OK)ESP_LOGW(TAG,"Save failed: %s",esp_err_to_name(err));
     nvs_close(handle);
@@ -361,7 +369,15 @@ static void input_task(void *arg) {
         vTaskDelay(pdMS_TO_TICKS(170));memcpy(s_game.cells,original,sizeof(original));
         uint8_t old_stage=garden_companion_stage_with_floor(s_game.total_cleared,s_stage_floor);
         bool played=garden_try_swap(&s_game,a,b);
-        if(played){save_game();uint8_t new_stage=garden_companion_stage_with_floor(s_game.total_cleared,s_stage_floor);
+        if(played){
+            if(garden_companion_cycle_complete(s_game.total_cleared)){
+                if(s_cycles<UINT32_MAX-1)s_cycles++;
+                garden_init(&s_game,esp_random());s_stage_floor=0;s_cursor=0;
+                save_game();play_tone(880,140);
+                if(bsp_lvgl_lock(500)){refresh_ui();lv_label_set_text(s_status,"GARDEN COMPLETE!");bsp_lvgl_unlock();}
+                continue;
+            }
+            save_game();uint8_t new_stage=garden_companion_stage_with_floor(s_game.total_cleared,s_stage_floor);
             ESP_LOGI(TAG,"move cleared=%lu total=%lu stage=%u",(unsigned long)s_game.last_cleared,(unsigned long)s_game.total_cleared,(unsigned)new_stage+1);
             if(new_stage>old_stage)play_tone(784,100);
             if(bsp_lvgl_lock(500)){
@@ -385,6 +401,10 @@ static void on_button(bsp_btn_t button,bsp_btn_ev_t event,void *user) {
 void app_main(void) {
     esp_err_t err=nvs_flash_init();if(err!=ESP_OK)ESP_LOGW(TAG,"Save storage unavailable: %s",esp_err_to_name(err));
     if(!restore_game())garden_init(&s_game,esp_random());
+    else if(garden_companion_cycle_complete(s_game.total_cleared)){
+        if(s_cycles<UINT32_MAX-1)s_cycles++;
+        garden_init(&s_game,esp_random());s_stage_floor=0;save_game();
+    }
     setenv("TZ","CST-8",1);tzset();
     bsp_i2c_init();
     if(bsp_audio_init()==ESP_OK&&bsp_audio_set_format(16000,16,1)==ESP_OK){bsp_audio_set_volume(22);s_sound_ready=true;}

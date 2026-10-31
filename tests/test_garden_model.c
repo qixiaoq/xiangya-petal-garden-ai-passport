@@ -49,6 +49,9 @@ int main(void) {
             assert(game.turns == (uint32_t)(turn + 1));
             check_board(&game);
         }
+        garden_init(&game, seed + 1000);
+        assert(game.total_cleared == 0 && game.turns == 0 && game.blooms == 0 && game.level == 1);
+        check_board(&game);
     }
     puts("garden model: PASS (20,000 moves)");
 }

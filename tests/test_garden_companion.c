@@ -9,14 +9,20 @@ int main(void) {
         if (i) assert(garden_companion_stage(thresholds[i]-1) == i-1);
         assert(garden_companion_next(thresholds[i]) == (i==6 ? 0 : thresholds[i+1]));
     }
+    const uint32_t quotas[7] = {60,120,180,240,360,480,600};
+    for (int i=0;i<6;i++) assert(thresholds[i+1]-thresholds[i] == quotas[i]);
+    assert(GARDEN_CYCLE_END-thresholds[6] == quotas[6]);
     assert(garden_companion_scale_tenths(0) <= 6);
     assert(garden_companion_scale_tenths(6) > garden_companion_scale_tenths(5));
     assert(garden_companion_threshold(6) == 1440);
     assert(garden_companion_legacy_stage(326) == 6);
     assert(garden_companion_stage_with_floor(326, 6) == 6);
-    assert(garden_companion_next_with_floor(326, 6) == 1440);
-    assert(garden_companion_next_with_floor(1439, 6) == 1440);
-    assert(garden_companion_next_with_floor(1440, 6) == 0);
+    assert(garden_companion_next_with_floor(326, 6) == 2040);
+    assert(garden_companion_next_with_floor(1439, 6) == 2040);
+    assert(garden_companion_next_with_floor(1440, 6) == 2040);
+    assert(garden_companion_next_with_floor(2040, 6) == 0);
+    assert(!garden_companion_cycle_complete(2039));
+    assert(garden_companion_cycle_complete(2040));
     assert(garden_companion_stage_with_floor(61, 2) == 2);
     assert(garden_companion_next_with_floor(61, 2) == 360);
     assert(garden_companion_stage_with_floor(1440, 0) == 6);

@@ -23,8 +23,11 @@ uint8_t garden_companion_stage_with_floor(uint32_t total_cleared, uint8_t stage_
 }
 uint32_t garden_companion_next_with_floor(uint32_t total_cleared, uint8_t stage_floor) {
     uint8_t stage = garden_companion_stage_with_floor(total_cleared, stage_floor);
-    if (stage == 6) return total_cleared < thresholds[6] ? thresholds[6] : 0;
+    if (stage == 6) return total_cleared < GARDEN_CYCLE_END ? GARDEN_CYCLE_END : 0;
     return thresholds[stage + 1];
+}
+bool garden_companion_cycle_complete(uint32_t total_cleared) {
+    return total_cleared >= GARDEN_CYCLE_END;
 }
 uint32_t garden_companion_next(uint32_t total_cleared) {
     uint8_t stage = garden_companion_stage(total_cleared);
