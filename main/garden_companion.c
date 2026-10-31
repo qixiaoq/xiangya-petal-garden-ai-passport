@@ -1,5 +1,5 @@
 #include "garden_companion.h"
-static const uint32_t thresholds[7] = {0, 24, 60, 108, 168, 240, 324};
+static const uint32_t thresholds[7] = {0, 60, 180, 360, 600, 960, 1440};
 static const char *const names[7] = {"象芽", "小耳朵", "稳稳站", "卷鼻子", "一朵花", "花冠象", "七彩花冠象"};
 static const uint8_t name_columns[7] = {2, 3, 3, 3, 3, 3, 5};
 uint32_t garden_companion_threshold(uint8_t stage) { return thresholds[stage < 7 ? stage : 6]; }
@@ -9,6 +9,21 @@ uint8_t garden_companion_stage(uint32_t total_cleared) {
     uint8_t stage = 0;
     for (uint8_t i = 1; i < 7; ++i) if (total_cleared >= thresholds[i]) stage = i;
     return stage;
+}
+uint8_t garden_companion_legacy_stage(uint32_t total_cleared) {
+    static const uint32_t old_thresholds[7] = {0, 24, 60, 108, 168, 240, 324};
+    uint8_t stage = 0;
+    for (uint8_t i = 1; i < 7; ++i) if (total_cleared >= old_thresholds[i]) stage = i;
+    return stage;
+}
+uint8_t garden_companion_stage_with_floor(uint32_t total_cleared, uint8_t stage_floor) {
+    uint8_t stage = garden_companion_stage(total_cleared);
+    if (stage_floor > 6) stage_floor = 6;
+    return stage > stage_floor ? stage : stage_floor;
+}
+uint32_t garden_companion_next_with_floor(uint32_t total_cleared, uint8_t stage_floor) {
+    uint8_t stage = garden_companion_stage_with_floor(total_cleared, stage_floor);
+    return stage == 6 ? 0 : thresholds[stage + 1];
 }
 uint32_t garden_companion_next(uint32_t total_cleared) {
     uint8_t stage = garden_companion_stage(total_cleared);

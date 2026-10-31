@@ -42,6 +42,7 @@ static garden_clock_edit_t s_clock_edit;
 static bool s_clock_editing, s_clock_valid, s_sound_ready, s_sound_enabled = true;
 static bool s_preview_mode;
 static uint8_t s_preview_stage = 1;
+static uint8_t s_stage_floor;
 static uint8_t s_cursor, s_first = 255, s_neighbor = 255;
 
 typedef struct { uint32_t version; garden_game_t game; } saved_game_t;
@@ -199,8 +200,8 @@ static uint8_t neighbors(uint8_t index,uint8_t out[4]) {
     return count;
 }
 static void refresh_ui(void) {
-    char line[32];uint8_t stage=garden_companion_stage(s_game.total_cleared);
-    uint32_t next=garden_companion_next(s_game.total_cleared);
+    char line[32];uint8_t stage=garden_companion_stage_with_floor(s_game.total_cleared,s_stage_floor);
+    uint32_t next=garden_companion_next_with_floor(s_game.total_cleared,s_stage_floor);
     uint8_t display_stage=s_preview_mode?s_preview_stage:stage;
     lv_snprintf(line,sizeof(line),s_preview_mode?"PREVIEW %u/7":"LEVEL %u/7",(unsigned)(display_stage+1));lv_label_set_text(s_level,line);
     if(s_preview_mode)lv_snprintf(line,sizeof(line),"UP/DOWN VIEW");
@@ -208,6 +209,7 @@ static void refresh_ui(void) {
     else lv_snprintf(line,sizeof(line),"%lu FLOWERS",(unsigned long)s_game.total_cleared);
     lv_label_set_text(s_target,line);
     uint32_t start=garden_companion_threshold(stage);
+    if(s_game.total_cleared<start)start=0;
     uint32_t width=next?(s_game.total_cleared-start)*120/(next-start):120;
     lv_obj_set_width(s_progress,width?width:2);
     render_pet(display_stage);
@@ -228,16 +230,21 @@ static void refresh_ui(void) {
 static bool restore_game(void) {
     nvs_handle_t handle;if(nvs_open("petal_garden",NVS_READONLY,&handle)!=ESP_OK)return false;
     saved_game_t saved;size_t size=sizeof(saved);
-    esp_err_t err=nvs_get_blob(handle,"state",&saved,&size);nvs_close(handle);
+    esp_err_t err=nvs_get_blob(handle,"state",&saved,&size);
+    uint8_t saved_floor=0;
+    esp_err_t floor_err=nvs_get_u8(handle,"stage_floor",&saved_floor);
+    nvs_close(handle);
     if(err!=ESP_OK||size!=sizeof(saved)||saved.version!=SAVE_VERSION||!saved.game.rng)return false;
     for(int i=0;i<36;++i)if(saved.game.cells[i]<1||saved.game.cells[i]>GARDEN_COLORS)return false;
     s_game=saved.game;if(garden_has_match(&s_game))return false;
+    s_stage_floor=floor_err==ESP_OK&&saved_floor<=6?saved_floor:garden_companion_legacy_stage(s_game.total_cleared);
     garden_rebuild_moves(&s_game);return s_game.move_count!=0;
 }
 static void save_game(void) {
     nvs_handle_t handle;if(nvs_open("petal_garden",NVS_READWRITE,&handle)!=ESP_OK)return;
     saved_game_t saved={.version=SAVE_VERSION,.game=s_game};
     esp_err_t err=nvs_set_blob(handle,"state",&saved,sizeof(saved));
+    if(err==ESP_OK)err=nvs_set_u8(handle,"stage_floor",s_stage_floor);
     if(err==ESP_OK)err=nvs_commit(handle);
     if(err!=ESP_OK)ESP_LOGW(TAG,"Save failed: %s",esp_err_to_name(err));
     nvs_close(handle);
@@ -351,9 +358,9 @@ static void input_task(void *arg) {
         for(int i=0;i<36;++i)if(marks[i])s_game.cells[i]=0;
         if(bsp_lvgl_lock(500)){refresh_ui();bsp_lvgl_unlock();}
         vTaskDelay(pdMS_TO_TICKS(170));memcpy(s_game.cells,original,sizeof(original));
-        uint8_t old_stage=garden_companion_stage(s_game.total_cleared);
+        uint8_t old_stage=garden_companion_stage_with_floor(s_game.total_cleared,s_stage_floor);
         bool played=garden_try_swap(&s_game,a,b);
-        if(played){save_game();uint8_t new_stage=garden_companion_stage(s_game.total_cleared);
+        if(played){save_game();uint8_t new_stage=garden_companion_stage_with_floor(s_game.total_cleared,s_stage_floor);
             ESP_LOGI(TAG,"move cleared=%lu total=%lu stage=%u",(unsigned long)s_game.last_cleared,(unsigned long)s_game.total_cleared,(unsigned)new_stage+1);
             if(new_stage>old_stage)play_tone(784,100);
             if(bsp_lvgl_lock(500)){

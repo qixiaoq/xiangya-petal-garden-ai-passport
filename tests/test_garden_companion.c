@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 int main(void) {
-    const uint32_t thresholds[7] = {0,24,60,108,168,240,324};
+    const uint32_t thresholds[7] = {0,60,180,360,600,960,1440};
     for (int i=0;i<7;i++) {
         assert(garden_companion_stage(thresholds[i]) == i);
         if (i) assert(garden_companion_stage(thresholds[i]-1) == i-1);
@@ -11,7 +11,13 @@ int main(void) {
     }
     assert(garden_companion_scale_tenths(0) <= 6);
     assert(garden_companion_scale_tenths(6) > garden_companion_scale_tenths(5));
-    assert(garden_companion_threshold(6) == 324);
+    assert(garden_companion_threshold(6) == 1440);
+    assert(garden_companion_legacy_stage(326) == 6);
+    assert(garden_companion_stage_with_floor(326, 6) == 6);
+    assert(garden_companion_next_with_floor(326, 6) == 0);
+    assert(garden_companion_stage_with_floor(61, 2) == 2);
+    assert(garden_companion_next_with_floor(61, 2) == 360);
+    assert(garden_companion_stage_with_floor(1440, 0) == 6);
     assert(garden_companion_name_columns(6) == 5);
     const char *const names[7]={"象芽","小耳朵","稳稳站","卷鼻子","一朵花","花冠象","七彩花冠象"};
     for(int i=0;i<7;i++) assert(strcmp(garden_companion_name(i),names[i])==0);
