@@ -4,7 +4,7 @@
 
 An offline, unhurried match-three game for the FoloToy AI Passport. Match three flowers to help a small pixel elephant grow. There are no countdowns, daily tasks, stamina limits, network accounts, servers, or large language models.
 
-This branch is an application built on the [FoloToy AI Passport](https://github.com/FoloToy/ai-passport) ESP32-C3 firmware baseline. Its own game screen replaces the baseline demo at startup. The source is provided for building and review; generated firmware is excluded from Git.
+This standalone source package is adapted from the [FoloToy AI Passport](https://github.com/FoloToy/ai-passport) ESP32-C3 firmware baseline. The game screen opens at startup. Generated firmware is excluded from Git.
 
 ![Xiangya Petal Garden cover](docs/assets/xiangya-petal-garden-cover.png)
 
@@ -24,6 +24,6 @@ Target hardware: AI Passport with ESP32-C3, 8 MB Flash, 240 × 320 display, and 
 ./tools/validate.sh
 ```
 
-The complete gate runs host tests, builds the firmware, verifies the partition layout, and creates `build/FoloToy-AI-Passport-full.bin`. The merged `full.bin` is the image for a complete flash at `0x0`; `build/FoloToy-AI-Passport.bin` is only the application image and must not be written at `0x0`. A complete merged flash can overwrite saved data. See [firmware layout and data preservation](docs/development/engineering/firmware-layout.md).
+The complete gate runs host tests, builds the firmware, verifies the partition layout, and creates `build/FoloToy-AI-Passport-full.bin`. The merged `full.bin` is the image for a complete flash at `0x0`; `build/FoloToy-AI-Passport.bin` is only the application image and must not be written at `0x0`. A complete merged flash can overwrite saved data. See [firmware layout and data preservation](https://github.com/FoloToy/ai-passport/blob/main/docs/development/engineering/firmware-layout.md).
 
 The Chinese name font is a small Source Han Sans SC subset generated from LVGL's bundled source font under the SIL Open Font License 1.1. Its generation command and source are recorded in [assets/fonts/garden_name_16.c](assets/fonts/garden_name_16.c) and [assets/README.md](assets/README.md). The repository code follows the root [MIT license](LICENSE).
