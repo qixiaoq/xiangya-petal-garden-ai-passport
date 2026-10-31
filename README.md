@@ -11,7 +11,7 @@ This standalone source package is adapted from the [FoloToy AI Passport](https:/
 ## Play
 
 - Use **UP/DOWN** to select a flower, then **OK**. Use **UP/DOWN** to choose an adjacent flower and **OK** again to swap. Only a swap creating a line of three or more identical flowers clears them.
-- The seven companion stages unlock after 0, 60, 180, 360, 600, 960, and 1440 cumulative cleared flowers. Their on-screen Chinese names are listed in the Simplified Chinese README. The seventh stage is the largest form. Play can continue after it. Existing saves keep their unlocked form and actual cleared-flower count when upgraded.
+- The seven companion stages unlock after 0, 60, 180, 360, 600, 960, and 1440 cumulative cleared flowers. Their on-screen Chinese names are listed in the Simplified Chinese README. The seventh stage is the largest form. Play can continue after it. Existing saves keep their unlocked form and actual cleared-flower count when upgraded. If a legacy save is already at stage seven but has fewer than 1440 flowers, its progress bar keeps advancing toward 1440.
 - **Long OK** opens a visual growth preview at stage 2. **UP/DOWN** browse stages 2–7; **OK** returns to the game. Preview does not change saved progress.
 - **Long DOWN** opens manual date and time setting. In that screen, UP/DOWN change a value, OK moves to the next field, long OK saves, and long DOWN cancels. The game itself does not require internet access.
 - **Long UP** toggles sound. Game progress is saved locally after a valid match.

@@ -14,7 +14,9 @@ int main(void) {
     assert(garden_companion_threshold(6) == 1440);
     assert(garden_companion_legacy_stage(326) == 6);
     assert(garden_companion_stage_with_floor(326, 6) == 6);
-    assert(garden_companion_next_with_floor(326, 6) == 0);
+    assert(garden_companion_next_with_floor(326, 6) == 1440);
+    assert(garden_companion_next_with_floor(1439, 6) == 1440);
+    assert(garden_companion_next_with_floor(1440, 6) == 0);
     assert(garden_companion_stage_with_floor(61, 2) == 2);
     assert(garden_companion_next_with_floor(61, 2) == 360);
     assert(garden_companion_stage_with_floor(1440, 0) == 6);
