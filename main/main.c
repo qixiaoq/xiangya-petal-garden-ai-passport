@@ -41,7 +41,7 @@ static lv_obj_t *s_clock_view, *s_clock_rows[5], *s_clock_values[5];
 static garden_clock_edit_t s_clock_edit;
 static bool s_clock_editing, s_clock_valid, s_sound_ready, s_sound_enabled = true;
 static bool s_preview_mode;
-static uint8_t s_preview_stage = 1;
+static uint8_t s_preview_stage;
 static uint8_t s_stage_floor;
 static uint8_t s_cursor, s_first = 255, s_neighbor = 255;
 
@@ -204,13 +204,14 @@ static void refresh_ui(void) {
     uint32_t next=garden_companion_next_with_floor(s_game.total_cleared,s_stage_floor);
     uint8_t display_stage=s_preview_mode?s_preview_stage:stage;
     lv_snprintf(line,sizeof(line),s_preview_mode?"PREVIEW %u/7":"LEVEL %u/7",(unsigned)(display_stage+1));lv_label_set_text(s_level,line);
-    if(s_preview_mode)lv_snprintf(line,sizeof(line),"UP/DOWN VIEW");
+    if(s_preview_mode)lv_snprintf(line,sizeof(line),"GOAL %lu FLOWERS",(unsigned long)garden_companion_threshold(display_stage));
     else if(next)lv_snprintf(line,sizeof(line),"%lu/%lu FLOWERS",(unsigned long)s_game.total_cleared,(unsigned long)next);
     else lv_snprintf(line,sizeof(line),"%lu FLOWERS",(unsigned long)s_game.total_cleared);
     lv_label_set_text(s_target,line);
     uint32_t start=garden_companion_threshold(stage);
     if(s_game.total_cleared<start)start=0;
-    uint32_t width=next?(s_game.total_cleared-start)*120/(next-start):120;
+    uint32_t width=s_preview_mode?garden_companion_threshold(display_stage)*120/garden_companion_threshold(6):
+        next?(s_game.total_cleared-start)*120/(next-start):120;
     lv_obj_set_width(s_progress,width?width:2);
     render_pet(display_stage);
     lv_label_set_text(s_pet_name,garden_companion_name(display_stage));
@@ -301,13 +302,13 @@ static void input_task(void *arg) {
                 if(bsp_lvgl_lock(500)){refresh_ui();lv_label_set_text(s_status,"CHOOSE FLOWER");bsp_lvgl_unlock();}
             }else if(input.event==BSP_BTN_CLICK&&(input.button==BSP_BTN_UP||input.button==BSP_BTN_DOWN)){
                 s_preview_stage=garden_preview_stage_step(s_preview_stage,input.button==BSP_BTN_UP?-1:1);
-                if(bsp_lvgl_lock(500)){refresh_ui();lv_label_set_text(s_status,"OK BACK TO GAME");bsp_lvgl_unlock();}
+                if(bsp_lvgl_lock(500)){refresh_ui();lv_label_set_text(s_status,"UP/DN VIEW OK EXIT");bsp_lvgl_unlock();}
             }
             continue;
         }
         if(input.event==BSP_BTN_LONG&&input.button==BSP_BTN_OK){
-            s_preview_stage=1;s_preview_mode=true;
-            if(bsp_lvgl_lock(500)){refresh_ui();lv_label_set_text(s_status,"OK BACK TO GAME");bsp_lvgl_unlock();}
+            s_preview_stage=0;s_preview_mode=true;
+            if(bsp_lvgl_lock(500)){refresh_ui();lv_label_set_text(s_status,"UP/DN VIEW OK EXIT");bsp_lvgl_unlock();}
             continue;
         }
         if(input.event==BSP_BTN_LONG&&input.button==BSP_BTN_DOWN){

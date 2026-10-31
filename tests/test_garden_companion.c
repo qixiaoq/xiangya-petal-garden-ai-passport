@@ -25,11 +25,10 @@ int main(void) {
     for(int i=0;i<7;i++) assert(strcmp(garden_companion_name(i),names[i])==0);
     assert(garden_companion_scale_tenths(1) >= garden_companion_scale_tenths(0) * 2);
     for (int i=2;i<7;i++) assert(garden_companion_scale_tenths(i) > garden_companion_scale_tenths(i-1));
-    assert(garden_preview_stage_step(0, 1) == 2);
-    assert(garden_preview_stage_step(1, -1) == 1);
-    for (int i=1;i<6;i++) assert(garden_preview_stage_step(i, 1) == i+1);
+    assert(garden_preview_stage_step(0, -1) == 0);
+    for (int i=0;i<6;i++) assert(garden_preview_stage_step(i, 1) == i+1);
     assert(garden_preview_stage_step(6, 1) == 6);
-    for (int i=2;i<=6;i++) assert(garden_preview_stage_step(i, -1) == i-1);
+    for (int i=1;i<=6;i++) assert(garden_preview_stage_step(i, -1) == i-1);
     garden_clock_edit_t c = {2028,2,29,23,59,0};
     assert(garden_clock_valid(&c));
     garden_clock_adjust(&c,1); assert(c.year==2029 && c.day==28);

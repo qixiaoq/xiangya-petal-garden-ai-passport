@@ -35,8 +35,8 @@ uint8_t garden_companion_scale_tenths(uint8_t stage) {
     return scales[stage < 7 ? stage : 6];
 }
 uint8_t garden_preview_stage_step(uint8_t stage, int direction) {
-    if(stage < 1 || stage > 6) stage = 1;
-    if(direction < 0 && stage > 1) return stage - 1;
+    if(stage > 6) stage = 0;
+    if(direction < 0 && stage > 0) return stage - 1;
     if(direction > 0 && stage < 6) return stage + 1;
     return stage;
 }
